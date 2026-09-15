@@ -21,10 +21,7 @@ import {
 } from './mockData';
 
 
-export const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
-  ? import.meta.env.VITE_API_BASE_URL
-  : 'http://localhost:8000/api';
-
+export const API_BASE_URL = 'http://127.0.0.1:8000/api';
 // Helper to simulate slight async delay in mock mode for realism
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -38,12 +35,20 @@ class ApiService {
   public async checkHealth(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      const res = await fetch(`${API_BASE_URL}/rider/R002`, {
+        signal: controller.signal
+      });
+
       clearTimeout(timeoutId);
+
       this.isOnline = res.ok;
+      console.log("Backend connected:", this.isOnline);
+
       return this.isOnline;
-    } catch {
+    } catch (err) {
+      console.error("Backend connection failed:", err);
       this.isOnline = false;
       return false;
     }

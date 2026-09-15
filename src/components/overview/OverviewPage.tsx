@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Play, 
-  Square, 
-  UserPlus, 
-  Key, 
-  Sliders, 
-  Sparkles, 
-  ShieldAlert, 
+import {
+  Play,
+  Square,
+  UserPlus,
+  Key,
+  Sliders,
+  Sparkles,
+  ShieldAlert,
   AlertCircle,
   Eye,
   CheckCircle2,
@@ -66,7 +66,7 @@ export const OverviewPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <img
-                src={rider.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"}
+                src={`/faces/${rider.id}.jpg`}
                 alt={rider.name}
                 className="w-14 h-14 rounded-full border-2 border-crt-green object-cover"
               />
@@ -217,7 +217,7 @@ export const OverviewPage: React.FC = () => {
   // --- OWNER / ADMIN VIEW (Full Diagnostic Grid + Action Toolbar) ---
   return (
     <div className="space-y-6">
-      
+
       {/* Admin Action Bar */}
       <div className="p-3.5 rounded-lg dark:bg-[#0A120E] bg-white panel-border flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export const OverviewPage: React.FC = () => {
 
       {/* Grid Layout Cards A, B, C, D, E, F, G */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-        
+
         {/* Card A: Rider Verification */}
         <RiderCard />
 

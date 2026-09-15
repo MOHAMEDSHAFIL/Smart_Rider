@@ -170,7 +170,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
   // Tabs & Role
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sessions' | 'policy' | 'demo'>('overview');
   const [activeRole, setActiveRole] = useState<ActiveRole>('OWNER_ADMIN');
-  const [demoMode, setDemoMode] = useState<boolean>(true);
+  const [demoMode, setDemoMode] = useState<boolean>(false);
 
   // Connectivity
   const [connectivity, setConnectivity] = useState<ConnectivityState>(INITIAL_CONNECTIVITY);
@@ -179,7 +179,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
   const [stateMachineState, setStateMachineState] = useState<SystemStateMachineState>('LEARNING_MODE');
 
   // Rider Profile & State
-  const [rider, setRider] = useState<UserProfile>(MOCK_USERS[2]); // Ravi Kumar (Learner)
+  const [rider, setRider] = useState<UserProfile>(MOCK_USERS[2]);
   const [riderLicenceValid, setRiderLicenceValid] = useState<boolean>(true);
   const [riderFaceVerified, setRiderFaceVerified] = useState<boolean>(true);
   const [riderAuthType, setRiderAuthType] = useState<VehicleAuthType>('PERMANENT');
@@ -254,7 +254,8 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
         setRider(prev => ({
           ...prev,
           id: riderData.user_id,
-          name: riderData.name
+          name: riderData.name,
+          avatarUrl: `/faces/${riderData.user_id}.jpg`
         }));
         setEscort(prev => prev ? {
           ...prev,

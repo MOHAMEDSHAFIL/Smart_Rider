@@ -17,7 +17,7 @@ export const VehicleStatusCard: React.FC = () => {
     riderAuthType
   } = useSmartRider();
 
-  const modeColors = {
+  const modeColorMap = {
     NORMAL: {
       bg: 'dark:bg-emerald-950/20 bg-emerald-50',
       border: 'dark:border-crt-green/40 border-emerald-300',
@@ -42,7 +42,11 @@ export const VehicleStatusCard: React.FC = () => {
       text: 'dark:text-slate-300 text-slate-700',
       glow: ''
     }
-  }[vehicleMode];
+  };
+
+  const modeColors =
+    modeColorMap[vehicleMode as keyof typeof modeColorMap] ??
+    modeColorMap.LEARNING;
 
   return (
     <Panel
@@ -80,7 +84,7 @@ export const VehicleStatusCard: React.FC = () => {
 
         {/* Live Gauges & Telemetry Row */}
         <div className="grid grid-cols-2 gap-2.5 font-mono">
-          
+
           {/* Speed Telemetry */}
           <div className="p-2.5 rounded dark:bg-black/30 bg-slate-50 border dark:border-slate-800/60 border-slate-200">
             <div className="flex items-center justify-between text-[10px] uppercase text-slate-400 dark:text-crt-muted mb-1">
@@ -119,7 +123,7 @@ export const VehicleStatusCard: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-around gap-2">
-            
+
             {/* Front Seat (Rider) */}
             <div
               className={clsx(
