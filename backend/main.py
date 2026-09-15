@@ -51,7 +51,7 @@ def get_rider(user_id: str):
     }
 
 
-@app.get("/vehicle/status")
+@app.get("/api/vehicle/status")
 def vehicle_status():
     return {
         "vehicle_id": "V001",
@@ -62,7 +62,7 @@ def vehicle_status():
         "distance_limit": 3.0,
         "distance_remaining": 1.8
     }
-@app.get("/vehicle/{vehicle_id}/authorization/{user_id}")
+@app.get("/api/vehicle/{vehicle_id}/authorization/{user_id}")
 def check_vehicle_authorization(vehicle_id: str, user_id: str):
     authorization = get_vehicle_authorization(vehicle_id, user_id)
 
@@ -74,7 +74,7 @@ def check_vehicle_authorization(vehicle_id: str, user_id: str):
     }
 
 
-@app.get("/learner/{user_id}/quota")
+@app.get("/api/learner/{user_id}/quota")
 def learner_quota(user_id: str):
     quota = get_learner_quota(user_id)
 
@@ -126,7 +126,7 @@ def remove_access(vehicle_id: str, user_id: str):
         "vehicle_id": vehicle_id,
         "user_id": user_id
     }
-@app.get("/escort/{user_id}")
+@app.get("/api/escort/{user_id}")
 def get_escort(user_id: str):
     user = get_user(user_id)
 
