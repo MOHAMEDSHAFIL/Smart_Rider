@@ -35,7 +35,7 @@ def home():
     }
 
 
-@app.get("/rider/{user_id}")
+@app.get("/api/rider/{user_id}")
 def get_rider(user_id: str):
     user = get_user(user_id)
 
