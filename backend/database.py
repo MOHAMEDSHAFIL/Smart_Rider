@@ -1,6 +1,7 @@
 import sqlite3
+import os
 
-DB_NAME = "smart_rider.db"
+DB_NAME = "/tmp/smart_rider.db" if os.getenv("VERCEL") else "smart_rider.db"
 
 
 # --------------------------------------------------
