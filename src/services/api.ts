@@ -135,7 +135,6 @@ class ApiService {
     await delay(80);
     return { success: true, policy };
   }
-
   public async getSessionHistory(): Promise<SessionHistoryItem[]> {
     if (this.isOnline) {
       try {
@@ -145,9 +144,41 @@ class ApiService {
         console.warn('API getSessionHistory failed, using mock', err);
       }
     }
+
     await delay(60);
     return INITIAL_SESSION_HISTORY;
   }
+
+
+  public async verifyRiderFace(
+    userId: string,
+    imageBlob: Blob
+  ): Promise<{
+    status: string;
+    verified: boolean;
+    similarity?: number;
+    message: string;
+  }> {
+
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'captured-face.jpg');
+
+    const res = await fetch(
+      `${API_BASE_URL}/face/verify/${userId}`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error('Face verification request failed');
+    }
+
+    return await res.json();
+  }
+
 }
 
 export const api = new ApiService();
+

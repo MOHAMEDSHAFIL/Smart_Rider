@@ -614,7 +614,12 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const resetDemoAction = () => {
     sounds.playSuccess();
-    setRider(MOCK_USERS[2]); // Ravi
+    setRider({
+      ...MOCK_USERS[2],
+      id: 'R002',
+      name: 'Mohamed Shafil',
+      avatarUrl: '/faces/R002.jpg'
+    });
     setRiderType('LEARNER');
     setRiderLicenceValid(true);
     setRiderFaceVerified(true);

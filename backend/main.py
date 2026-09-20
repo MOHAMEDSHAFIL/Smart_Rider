@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
+import cv2
+import numpy as np
+from insightface.app import FaceAnalysis
 from fastapi.middleware.cors import CORSMiddleware
 from database import (
     create_tables,
@@ -24,6 +27,15 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+face_app = FaceAnalysis(
+    name="buffalo_l",
+    providers=["CPUExecutionProvider"]
+)
+
+face_app.prepare(
+    ctx_id=-1,
+    det_size=(640, 640)
 )
 
 
@@ -143,3 +155,53 @@ def get_escort(user_id: str):
         "licence_status": user["licence_status"],
         "escort_eligible": bool(user["escort_eligible"])
     }
+@app.post("/api/face/verify/{user_id}")
+async def verify_face(user_id: str, file: UploadFile = File(...)):
+
+    registered_path = f"../public/faces/{user_id}.jpg"
+    registered_image = cv2.imread(registered_path)
+
+    if registered_image is None:
+        return {
+            "status": "ERROR",
+            "verified": False,
+            "message": "Registered face not found"
+        }
+
+    registered_faces = face_app.get(registered_image)
+
+    if len(registered_faces) == 0:
+        return {
+            "status": "ERROR",
+            "verified": False,
+            "message": "No face detected in registered image"
+        }
+
+    image_bytes = await file.read()
+    np_array = np.frombuffer(image_bytes, np.uint8)
+    captured_image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+
+    captured_faces = face_app.get(captured_image)
+
+    if len(captured_faces) == 0:
+        return {
+            "status": "NO_FACE",
+            "verified": False,
+            "message": "No face detected"
+        }
+
+    registered_embedding = registered_faces[0].normed_embedding
+    captured_embedding = captured_faces[0].normed_embedding
+
+    similarity = float(
+        np.dot(registered_embedding, captured_embedding)
+    )
+
+    verified = similarity >= 0.45
+
+    return {
+        "status": "OK",
+        "verified": verified,
+        "similarity": round(similarity * 100, 2),
+        "message": "Face verified" if verified else "Face mismatch"
+    }   
