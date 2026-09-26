@@ -24,6 +24,11 @@ export const RiderCard: React.FC = () => {
     useState<'IDLE' | 'VERIFIED' | 'MISMATCH'>(
       riderFaceVerified ? 'VERIFIED' : 'IDLE'
     );
+  useEffect(() => {
+    if (riderFaceVerified) {
+      setFaceResult('VERIFIED');
+    }
+  }, [riderFaceVerified]);
   const [faceSimilarity, setFaceSimilarity] = useState<number | null>(null);
   useEffect(() => {
     // Stop any running camera
@@ -40,8 +45,7 @@ export const RiderCard: React.FC = () => {
     // Reset previous rider's face verification
     setCameraOpen(false);
     setCapturedImage(null);
-    setFaceResult('IDLE');
-    setRiderFaceVerified(false);
+
 
     setFaceSimilarity(null);
     setVerifying(false);
