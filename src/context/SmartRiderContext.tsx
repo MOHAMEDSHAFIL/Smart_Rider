@@ -73,7 +73,7 @@ interface SmartRiderContextType {
   riderLicenceValid: boolean;
   setRiderLicenceValid: (v: boolean) => void;
   riderFaceVerified: boolean;
-  setRiderFaceVerified: (v: boolean) => void;
+  setRiderFaceVerified: React.Dispatch<React.SetStateAction<boolean>>;
   riderAuthType: VehicleAuthType;
   setRiderAuthType: (v: VehicleAuthType) => void;
   riderType: RiderType;
@@ -181,7 +181,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
   // Rider Profile & State
   const [rider, setRider] = useState<UserProfile>(MOCK_USERS[2]);
   const [riderLicenceValid, setRiderLicenceValid] = useState<boolean>(true);
-  const [riderFaceVerified, setRiderFaceVerified] = useState<boolean>(true);
+  const [riderFaceVerified, setRiderFaceVerified] = useState<boolean>(false);
   const [riderAuthType, setRiderAuthType] = useState<VehicleAuthType>('PERMANENT');
   const [riderType, setRiderType] = useState<RiderType>('LEARNER');
   const [riderSeatOccupied, setRiderSeatOccupied] = useState<boolean>(true);

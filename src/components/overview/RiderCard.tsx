@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { User, Shield, CheckCircle2, XCircle, AlertTriangle, Fingerprint } from 'lucide-react';
 import { useSmartRider } from '../../context/SmartRiderContext';
 import { Panel } from '../common/Panel';
@@ -10,6 +10,7 @@ export const RiderCard: React.FC = () => {
     rider,
     riderLicenceValid,
     riderFaceVerified,
+    setRiderFaceVerified,
     riderAuthType,
     riderType,
     riderSeatOccupied,
@@ -19,8 +20,32 @@ export const RiderCard: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [faceResult, setFaceResult] = useState<'IDLE' | 'VERIFIED' | 'MISMATCH'>('IDLE');
+  const [faceResult, setFaceResult] =
+    useState<'IDLE' | 'VERIFIED' | 'MISMATCH'>(
+      riderFaceVerified ? 'VERIFIED' : 'IDLE'
+    );
   const [faceSimilarity, setFaceSimilarity] = useState<number | null>(null);
+  useEffect(() => {
+    // Stop any running camera
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    // Reset previous rider's face verification
+    setCameraOpen(false);
+    setCapturedImage(null);
+    setFaceResult('IDLE');
+    setRiderFaceVerified(false);
+
+    setFaceSimilarity(null);
+    setVerifying(false);
+  }, [rider.id]);
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -41,14 +66,13 @@ export const RiderCard: React.FC = () => {
       alert('Camera access failed. Please allow camera permission.');
     }
   };
-  const captureFace = () => {
+  const captureFace = async () => {
     const video = videoRef.current;
 
     if (!video) {
       alert('Camera not ready');
       return;
     }
-
 
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
@@ -61,78 +85,67 @@ export const RiderCard: React.FC = () => {
       return;
     }
 
+    // Capture current camera frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
-
     setCapturedImage(imageData);
-    const stream = videoRef.current?.srcObject as MediaStream;
+
+    // Stop camera immediately after capture
+    const stream = video.srcObject as MediaStream | null;
 
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-    }
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.srcObject = null;
     }
 
+    video.pause();
+    video.srcObject = null;
     setCameraOpen(false);
 
-    setFaceResult('IDLE');
-
-    console.log('Face captured successfully');
-  };
-  const verifyCapturedFace = async () => {
-    if (!capturedImage) {
-      alert('Please capture face first');
-      return;
-    }
-
+    // Automatically verify captured face
     try {
       setVerifying(true);
       setFaceResult('IDLE');
+      setFaceSimilarity(null);
 
-      const response = await fetch(capturedImage);
+      const response = await fetch(imageData);
       const imageBlob = await response.blob();
 
       const result = await api.verifyRiderFace(rider.id, imageBlob);
 
-      console.log('Face verification result:', result);
+      console.log('Automatic face verification result:', result);
 
       setFaceSimilarity(result.similarity ?? null);
 
       if (result.verified) {
         setFaceResult('VERIFIED');
+        setRiderFaceVerified(true);
       } else {
         setFaceResult('MISMATCH');
+        setRiderFaceVerified(false);
       }
     } catch (error) {
-      console.error('Face verification error:', error);
+      console.error('Automatic face verification error:', error);
+
+      setFaceSimilarity(null);
       setFaceResult('MISMATCH');
-      alert('Face verification failed');
+      setRiderFaceVerified(false);
     } finally {
       setVerifying(false);
-
-      // Stop camera completely after verification
-      const stream = videoRef.current?.srcObject as MediaStream | null;
-
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = null;
-        }
-      }
-
-      setCameraOpen(false);
-      setCapturedImage(null);
     }
+
+    console.log('Face captured and verification completed');
   };
 
+  const retryFaceVerification = async () => {
+    // Clear previous verification
+    setCapturedImage(null);
+
+    setFaceSimilarity(null);
+
+    // Open camera again
+    await openCamera();
+  };
 
   const getRiderTypeVariant = () => {
     if (riderType === 'NORMAL') return 'green';
@@ -278,34 +291,40 @@ export const RiderCard: React.FC = () => {
                         className="w-full rounded border border-crt-green"
                       />
 
-                      <button
-                        type="button"
-                        onClick={verifyCapturedFace}
-                        disabled={verifying}
-                        className="w-full mt-2 px-2 py-2 text-[10px] font-mono border border-crt-green text-crt-green rounded disabled:opacity-50"
-                      >
-                        {verifying ? 'VERIFYING...' : 'VERIFY CAPTURED FACE'}
-                      </button>
-                      {faceResult !== 'IDLE' && (
-                        <div
-                          className={`mt-2 text-center text-[11px] font-mono font-bold ${faceResult === 'VERIFIED'
-                            ? 'text-crt-green'
-                            : 'text-crt-red'
-                            }`}
-                        >
-                          {faceResult === 'VERIFIED' ? '✓ FACE VERIFIED' : '✕ FACE NOT VERIFIED'}
 
-                          {faceSimilarity !== null && (
-                            <div className="text-[10px] mt-1">
-                              MATCH SCORE: {faceSimilarity.toFixed(2)}%
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
 
+              )}
+              {faceResult !== 'IDLE' && (
+                <div className="mt-2">
+                  <div
+                    className={`text-center text-[11px] font-mono font-bold ${faceResult === 'VERIFIED'
+                      ? 'text-crt-green'
+                      : 'text-crt-red'
+                      }`}
+                  >
+                    {faceResult === 'VERIFIED'
+                      ? '✓ FACE VERIFIED'
+                      : '✕ FACE NOT VERIFIED'}
+
+                    {faceSimilarity !== null && (
+                      <div className="text-[10px] mt-1">
+                        MATCH SCORE: {faceSimilarity.toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={retryFaceVerification}
+                    disabled={verifying}
+                    className="w-full mt-2 px-2 py-2 text-[10px] font-mono border border-amber-400 text-amber-400 rounded hover:bg-amber-400/10 disabled:opacity-50"
+                  >
+                    RETRY FACE
+                  </button>
+                </div>
               )}
             </div>
           </div>
