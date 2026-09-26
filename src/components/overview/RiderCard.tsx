@@ -244,18 +244,19 @@ export const RiderCard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <Badge
-                variant={faceResult === 'VERIFIED' ? 'green' : faceResult === 'MISMATCH' ? 'red' : 'amber'}
+                variant={riderFaceVerified ? 'green' : faceResult === 'MISMATCH' ? 'red' : 'amber'}
                 size="xs"
                 dot={false}
               >
-                {faceResult === 'VERIFIED'
+                {riderFaceVerified
                   ? 'VERIFIED'
                   : faceResult === 'MISMATCH'
                     ? 'MISMATCH'
                     : 'NOT VERIFIED'}
+
               </Badge>
               <Fingerprint className={`w-3.5 h-3.5 ${riderFaceVerified ? 'text-crt-green' : 'text-crt-red'}`} />
-              {faceResult === 'IDLE' && !cameraOpen && (
+              {!riderFaceVerified && faceResult === 'IDLE' && !cameraOpen && (
                 <button
                   type="button"
                   onClick={openCamera}
@@ -338,10 +339,10 @@ export const RiderCard: React.FC = () => {
               Vehicle Authorization
             </div>
             <Badge
-              variant={faceResult === 'VERIFIED' ? getAuthVariant() : 'red'}
+              variant={riderFaceVerified ? getAuthVariant() : 'red'}
               size="xs"
             >
-              {faceResult === 'VERIFIED' ? riderAuthType : 'NOT AUTHORIZED'}
+              {riderFaceVerified ? riderAuthType : 'NOT AUTHORIZED'}
             </Badge>
           </div>
 
