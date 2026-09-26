@@ -25,14 +25,7 @@ export const RiderCard: React.FC = () => {
     useState<'IDLE' | 'VERIFIED' | 'MISMATCH'>(
       riderFaceVerified ? 'VERIFIED' : 'IDLE'
     );
-  console.log(
-    'RIDER DEBUG:',
-    rider.id,
-    'verified =',
-    riderFaceVerified,
-    'faceResult =',
-    faceResult
-  );
+
   useEffect(() => {
     if (riderFaceVerified) {
       setFaceResult('VERIFIED');
