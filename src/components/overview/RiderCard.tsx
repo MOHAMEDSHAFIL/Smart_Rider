@@ -110,15 +110,30 @@ export const RiderCard: React.FC = () => {
       } else {
         setFaceResult('MISMATCH');
       }
-
     } catch (error) {
       console.error('Face verification error:', error);
       setFaceResult('MISMATCH');
       alert('Face verification failed');
     } finally {
       setVerifying(false);
+
+      // Stop camera completely after verification
+      const stream = videoRef.current?.srcObject as MediaStream | null;
+
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
+      }
+
+      setCameraOpen(false);
+      setCapturedImage(null);
     }
   };
+
+
   const getRiderTypeVariant = () => {
     if (riderType === 'NORMAL') return 'green';
     if (riderType === 'LEARNER') return 'amber';
@@ -223,12 +238,15 @@ export const RiderCard: React.FC = () => {
                     : 'NOT VERIFIED'}
               </Badge>
               <Fingerprint className={`w-3.5 h-3.5 ${riderFaceVerified ? 'text-crt-green' : 'text-crt-red'}`} />
-              <button
-                onClick={openCamera}
-                className="w-full mt-2 px-2 py-1 text-[10px] font-mono border border-crt-green text-crt-green rounded"
-              >
-                VERIFY FACE
-              </button>
+              {faceResult === 'IDLE' && !cameraOpen && (
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="w-full mt-2 px-2 py-1 text-[10px] font-mono border border-crt-green text-crt-green rounded"
+                >
+                  VERIFY FACE
+                </button>
+              )}
 
               {cameraOpen && (
                 <div className="mt-2">
@@ -275,7 +293,7 @@ export const RiderCard: React.FC = () => {
                             : 'text-crt-red'
                             }`}
                         >
-                          {faceResult === 'VERIFIED' ? '✓ FACE VERIFIED' : '✕ FACE MISMATCH'}
+                          {faceResult === 'VERIFIED' ? '✓ FACE VERIFIED' : '✕ FACE NOT VERIFIED'}
 
                           {faceSimilarity !== null && (
                             <div className="text-[10px] mt-1">
