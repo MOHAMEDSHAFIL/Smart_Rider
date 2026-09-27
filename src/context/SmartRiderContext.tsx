@@ -183,13 +183,13 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
   const [riderLicenceValid, setRiderLicenceValid] = useState<boolean>(true);
   const [riderFaceVerified, setRiderFaceVerified] = useState<boolean>(false);
   const [riderAuthType, setRiderAuthType] = useState<VehicleAuthType>('PERMANENT');
-  const [riderType, setRiderType] = useState<RiderType>('LEARNER');
+  const [riderType, setRiderType] = useState<RiderType>('INVALID');
   const [riderSeatOccupied, setRiderSeatOccupied] = useState<boolean>(true);
 
   // Escort Profile & State
   const [escort, setEscort] = useState<EscortProfile | null>(MOCK_ESCORTS[0]); // Priya Patel
   const [escortLicenceValid, setEscortLicenceValid] = useState<boolean>(true);
-  const [escortFaceVerified, setEscortFaceVerified] = useState<boolean>(true);
+  const [escortFaceVerified, setEscortFaceVerified] = useState<boolean>(false);
   const [escortEligible, setEscortEligible] = useState<boolean>(true);
   const [pillionSeatOccupied, setPillionSeatOccupied] = useState<boolean>(true);
 
@@ -257,11 +257,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
           name: riderData.name,
           avatarUrl: `/faces/${riderData.user_id}.jpg`
         }));
-        setEscort(prev => prev ? {
-          ...prev,
-          id: escortData.user_id,
-          name: escortData.name
-        } : prev);
+        setEscort(MOCK_ESCORTS[0]);
 
         setEscortLicenceValid(
           escortData.licence_status === 'VALID'
@@ -272,7 +268,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
         );
 
         setRiderLicenceValid(riderData.licence_status === 'VALID');
-        setRiderType(riderData.rider_type);
+        // setRiderType(riderData.rider_type);
         setRiderAuthType(authData.authorization_type);
 
         setVehicleMode(vehicleData.mode);
@@ -620,7 +616,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
       name: 'Mohamed Shafil',
       avatarUrl: '/faces/R002.jpg'
     });
-    setRiderType('LEARNER');
+    setRiderType('NORMAL');
     setRiderLicenceValid(true);
     setRiderFaceVerified(true);
     setRiderAuthType('PERMANENT');

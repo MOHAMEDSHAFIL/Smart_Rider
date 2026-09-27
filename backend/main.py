@@ -158,7 +158,7 @@ def get_escort(user_id: str):
 @app.post("/api/face/verify/{user_id}")
 async def verify_face(user_id: str, file: UploadFile = File(...)):
 
-    registered_path = f"../public/faces/{user_id}.jpg"
+    registered_path = f"../public/faces/{user_id}.jpeg" if user_id == "E001" else f"../public/faces/{user_id}.jpeg"
     registered_image = cv2.imread(registered_path)
 
     if registered_image is None:
@@ -196,12 +196,14 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
     similarity = float(
         np.dot(registered_embedding, captured_embedding)
     )
+    
+    print(f"User ID: {user_id}")
+    print(f"Face similarity: {similarity}")
 
     verified = similarity >= 0.45
-
     return {
-        "status": "OK",
-        "verified": verified,
-        "similarity": round(similarity * 100, 2),
-        "message": "Face verified" if verified else "Face mismatch"
-    }   
+            "status": "OK",
+            "verified": verified,
+            "similarity": round(similarity * 100, 2),
+            "message": "Face verified" if verified else "Face mismatch"
+        }   

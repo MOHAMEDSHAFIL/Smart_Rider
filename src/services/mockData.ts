@@ -1,8 +1,8 @@
-import { 
-  UserProfile, 
-  EscortProfile, 
-  PolicySettings, 
-  SessionHistoryItem, 
+import {
+  UserProfile,
+  EscortProfile,
+  PolicySettings,
+  SessionHistoryItem,
   AlertItem,
   SupervisionIntegrityMatrix,
   DistanceMonitoringData,
@@ -75,14 +75,14 @@ export const MOCK_USERS: UserProfile[] = [
 export const MOCK_ESCORTS: EscortProfile[] = [
   {
     id: "E001",
-    name: "Priya Patel",
+    name: "Ram Balaji",
     licenceStatus: "VALID",
     licenceNumber: "DL-04201600889",
-    faceStatus: "VERIFIED",
+    faceStatus: "PENDING",
     eligibility: "ELIGIBLE",
     pillionPresence: "PRESENT",
-    supervisionStatus: "ACTIVE",
-    avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"
+    supervisionStatus: "INACTIVE",
+    avatarUrl: "/faces/E001.jpeg"
   },
   {
     id: "E002",

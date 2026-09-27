@@ -13,6 +13,7 @@ export const RiderCard: React.FC = () => {
     setRiderFaceVerified,
     riderAuthType,
     riderType,
+    setRiderType,
     riderSeatOccupied,
     activeRole
   } = useSmartRider();
@@ -126,9 +127,21 @@ export const RiderCard: React.FC = () => {
       if (result.verified) {
         setFaceResult('VERIFIED');
         setRiderFaceVerified(true);
+
+        if (riderLicenceValid) {
+          // Licence + Face both verified
+          setRiderType('NORMAL');
+        } else {
+          // Licence failed
+          setRiderType('LEARNER');
+        }
+
       } else {
         setFaceResult('MISMATCH');
         setRiderFaceVerified(false);
+
+        // Face mismatch -> learner flow
+        setRiderType('LEARNER');
       }
     } catch (error) {
       console.error('Automatic face verification error:', error);
@@ -171,7 +184,7 @@ export const RiderCard: React.FC = () => {
       icon={<User className="w-4 h-4" />}
       badge={
         <Badge variant={getRiderTypeVariant()} size="xs">
-          {riderType} RIDER
+          {riderType === 'INVALID' ? 'VERIFICATION PENDING' : `${riderType} RIDER`}
         </Badge>
       }
       variant={
