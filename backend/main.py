@@ -158,7 +158,7 @@ def get_escort(user_id: str):
 @app.post("/api/face/verify/{user_id}")
 async def verify_face(user_id: str, file: UploadFile = File(...)):
 
-    registered_path = f"../public/faces/{user_id}.jpeg" if user_id == "E001" else f"../public/faces/{user_id}.jpeg"
+    registered_path = f"../public/faces/{user_id}.jpeg" if user_id == "E001" else f"../public/faces/{user_id}.jpg"
     registered_image = cv2.imread(registered_path)
 
     if registered_image is None:
