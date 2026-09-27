@@ -1,10 +1,9 @@
 from fastapi import FastAPI, UploadFile, File
-from dotenv import load_dotenv, dotenv_values
 import cv2
 import numpy as np
+import os
 from insightface.app import FaceAnalysis
 from fastapi.middleware.cors import CORSMiddleware
-import os
 import requests
 from dotenv import load_dotenv
 from database import (
@@ -16,16 +15,16 @@ from database import (
     grant_temporary_access,
 revoke_access
 )
+# Load environment variables from backend/.env
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
-print("ENV PATH:", env_path)
-print("ENV FILE EXISTS:", os.path.exists(env_path))
-print("ENV KEYS:", list(dotenv_values(env_path).keys()))
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_OWNER_CHAT_ID = os.getenv("TELEGRAM_OWNER_CHAT_ID")
+
 print("Telegram token loaded:", bool(TELEGRAM_BOT_TOKEN))
 print("Telegram chat ID loaded:", bool(TELEGRAM_OWNER_CHAT_ID))
+
 app = FastAPI(
     title="Smart Rider Authorization Backend",
     version="1.0"
@@ -46,20 +45,25 @@ def send_telegram_message(message: str):
     try:
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
+
         print("Telegram notification sent")
         return True
+
     except Exception as error:
         print("Telegram notification error:", error)
         return False
 @app.get("/api/telegram/test")
 def test_telegram():
     sent = send_telegram_message(
-        "🏍️ Smart Rider Test\n\nOwner notification system connected successfully."
+        "🏍️ Smart Rider Test\n\n"
+        "Telegram notification system connected successfully."
     )
 
     return {
         "status": "OK" if sent else "ERROR",
-        "message": "Telegram test notification sent" if sent else "Telegram notification failed"
+        "message": "Telegram test notification sent"
+        if sent
+        else "Telegram notification failed"
     }
 create_tables()
 seed_users()
@@ -78,7 +82,8 @@ face_app = FaceAnalysis(
 
 face_app.prepare(
     ctx_id=-1,
-    det_size=(640, 640)
+    det_size=(640, 640),
+    det_thresh=0.3
 )
 
 
@@ -201,11 +206,21 @@ def get_escort(user_id: str):
 @app.post("/api/face/verify/{user_id}")
 async def verify_face(user_id: str, file: UploadFile = File(...)):
 
-    registered_path = (
-    f"../public/faces/{user_id}.jpeg"
-    if user_id == "E001"
-    else f"../public/faces/{user_id}.jpg"
-)
+    extension = ".jpeg" if user_id == "E001" else ".jpg"
+
+    registered_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "public",
+        "faces",
+        f"{user_id}{extension}"
+    )
+
+    registered_path = os.path.abspath(registered_path)
+
+    print("Registered face path:", registered_path)
+
+    # Load registered image
     registered_image = cv2.imread(registered_path)
 
     if registered_image is None:
@@ -215,7 +230,9 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
             "message": "Registered face not found"
         }
 
+    # Detect face in registered image
     registered_faces = face_app.get(registered_image)
+    print("REGISTERED FACES FOUND:", len(registered_faces))
 
     if len(registered_faces) == 0:
         return {
@@ -224,11 +241,30 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
             "message": "No face detected in registered image"
         }
 
+    # Read captured image from frontend
     image_bytes = await file.read()
-    np_array = np.frombuffer(image_bytes, np.uint8)
-    captured_image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
+    np_array = np.frombuffer(
+        image_bytes,
+        np.uint8
+    )
+
+    captured_image = cv2.imdecode(
+        np_array,
+        cv2.IMREAD_COLOR
+    )
+
+    if captured_image is None:
+        return {
+            "status": "ERROR",
+            "verified": False,
+            "message": "Unable to read captured image"
+        }
+    cv2.imwrite("debug_capture.jpg", captured_image)
+
+    # Detect face from captured image
     captured_faces = face_app.get(captured_image)
+    print("CAPTURED FACES FOUND:", len(captured_faces))
 
     if len(captured_faces) == 0:
         return {
@@ -237,29 +273,35 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
             "message": "No face detected"
         }
 
+    # Get embeddings
     registered_embedding = registered_faces[0].normed_embedding
     captured_embedding = captured_faces[0].normed_embedding
 
+    # Compare faces
     similarity = float(
-        np.dot(registered_embedding, captured_embedding)
+        np.dot(
+            registered_embedding,
+            captured_embedding
+        )
     )
-    
+
     print(f"User ID: {user_id}")
     print(f"Face similarity: {similarity}")
 
     verified = similarity >= 0.45
+
     if not verified:
-      send_telegram_message(
-        f"⚠️ SMART RIDER ACCESS REQUEST\n\n"
-        f"Rider ID: {user_id}\n"
-        f"Face verification: MISMATCH\n"
-        f"Match score: {round(similarity * 100, 2)}%\n\n"
-        f"An unverified rider is requesting vehicle access."
-    )
-    
+        send_telegram_message(
+            f"⚠️ SMART RIDER ALERT\n\n"
+            f"Rider ID: {user_id}\n"
+            f"Face Verification: MISMATCH\n"
+            f"Match Score: {round(similarity * 100, 2)}%\n\n"
+            f"Unverified rider detected."
+        )
+
     return {
-            "status": "OK",
-            "verified": verified,
-            "similarity": round(similarity * 100, 2),
-            "message": "Face verified" if verified else "Face mismatch"
-        }   
+        "status": "OK",
+        "verified": verified,
+        "similarity": round(similarity * 100, 2),
+        "message": "Face verified" if verified else "Face mismatch"
+    }
