@@ -30,7 +30,7 @@ app = FastAPI(
     version="1.0"
 
 )
-def send_telegram_message(message: str):
+def send_telegram_message(message: str, reply_markup=None):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_OWNER_CHAT_ID:
         print("Telegram configuration missing")
         return False
@@ -42,12 +42,20 @@ def send_telegram_message(message: str):
         "text": message
     }
 
-    try:
-        response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
 
-        print("Telegram notification sent")
-        return True
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=10
+        )
+
+        print("Telegram status:", response.status_code)
+        print("Telegram response:", response.text)
+
+        return response.ok
 
     except Exception as error:
         print("Telegram notification error:", error)
@@ -291,13 +299,40 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
     verified = similarity >= 0.45
 
     if not verified:
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+        buttons = {
+    "inline_keyboard": [
+        [
+            {
+                "text": "✅ ALLOW",
+                "callback_data": f"allow:{user_id}"
+            },
+            {
+                "text": "⛔ DENY",
+                "callback_data": f"deny:{user_id}"
+            }
+        ]
+    ]
+}
         send_telegram_message(
-            f"⚠️ SMART RIDER ALERT\n\n"
-            f"Rider ID: {user_id}\n"
-            f"Face Verification: MISMATCH\n"
-            f"Match Score: {round(similarity * 100, 2)}%\n\n"
-            f"Unverified rider detected."
-        )
+                f"🚨 SMART RIDER — ACCESS REQUEST\n\n"
+                f"An unverified rider is attempting to access your vehicle.\n\n"
+                f"👤 RIDER DETAILS\n"
+                f"Name: {rider_name}\n"
+                f"Rider ID: {user_id}\n"
+                f"Licence Status: {user['licence_status'] if user else 'UNKNOWN'}\n\n"
+                f"🔐 VERIFICATION\n"
+                f"Face Verification: MISMATCH\n"
+                f"Match Score: {round(similarity * 100, 2)}%\n\n"
+                f"🏍️ VEHICLE STATUS\n"
+                f"Vehicle ID: V001\n"
+                f"Status: LOCKED\n\n"
+                f"⚠️ Access remains blocked until owner authorization.",
+                reply_markup=buttons
+
+)
+        
 
     return {
         "status": "OK",
@@ -305,3 +340,212 @@ async def verify_face(user_id: str, file: UploadFile = File(...)):
         "similarity": round(similarity * 100, 2),
         "message": "Face verified" if verified else "Face mismatch"
     }
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(update: dict):
+
+    callback = update.get("callback_query")
+
+    if not callback:
+        return {"ok": True}
+
+    callback_id = callback.get("id")
+    data = callback.get("data", "")
+    message = callback.get("message", {})
+    chat_id = message.get("chat", {}).get("id")
+
+    print("TELEGRAM BUTTON CLICKED:", data)
+
+    # Stop Telegram loading animation
+    requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
+        json={
+            "callback_query_id": callback_id
+        },
+        timeout=10
+    )
+
+    if data.startswith("allow:"):
+        user_id = data.split(":", 1)[1]
+
+        print("OWNER SELECTED ALLOW:", user_id)
+
+        send_telegram_message(
+            f"✅ ACCESS APPROVAL\n\n"
+            f"Rider ID: {user_id}\n\n"
+            f"Choose the type of authorization:",
+            reply_markup={
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": "👤 PERMANENT USER",
+                            "callback_data": f"permanent:{user_id}"
+                        }
+                    ],
+                    [
+                        {
+                            "text": "⏱ TEMPORARY USER",
+                            "callback_data": f"temporary:{user_id}"
+                        }
+                    ],
+                    [
+                        {
+                            "text": "↩ CANCEL",
+                            "callback_data": f"cancel:{user_id}"
+                        }
+                    ]
+                ]
+            }
+        )
+    elif data.startswith("permanent:"):
+        user_id = data.split(":", 1)[1]
+
+        print("OWNER SELECTED PERMANENT USER:", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"👤 PERMANENT USER APPROVAL\n\n"
+            f"Name: {rider_name}\n"
+            f"Rider ID: {user_id}\n\n"
+            f"Permanent access has been selected."
+        )
+    elif data.startswith("temporary:"):
+        user_id = data.split(":", 1)[1]
+
+        print("OWNER SELECTED TEMPORARY USER:", user_id)
+
+        send_telegram_message(
+            f"⏱ TEMPORARY ACCESS\n\n"
+            f"Rider ID: {user_id}\n\n"
+            f"Select how long this rider should have access:",
+            reply_markup={
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": "1 HOUR",
+                            "callback_data": f"temp_1h:{user_id}"
+                        },
+                        {
+                            "text": "6 HOURS",
+                            "callback_data": f"temp_6h:{user_id}"
+                        }
+                    ],
+                    [
+                        {
+                            "text": "1 DAY",
+                            "callback_data": f"temp_1d:{user_id}"
+                        },
+                        {
+                            "text": "2 DAYS",
+                            "callback_data": f"temp_2d:{user_id}"
+                        }
+                    ],
+                    [
+                        {
+                            "text": "↩ CANCEL",
+                            "callback_data": f"cancel:{user_id}"
+                        }
+                    ]
+                ]
+            }
+        )
+    elif data.startswith("temp_1h:"):
+        user_id = data.split(":", 1)[1]
+
+        print("TEMPORARY ACCESS SELECTED: 1 HOUR -", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"✅ TEMPORARY ACCESS APPROVED\n\n"
+            f"👤 Name: {rider_name}\n"
+            f"🆔 Rider ID: {user_id}\n"
+            f"🏍️ Vehicle ID: V001\n\n"
+            f"⏱ Access Duration: 1 Hour\n"
+            f"🔓 Authorization Status: APPROVED\n\n"
+            f"Temporary access has been confirmed by the owner."
+        )
+    elif data.startswith("temp_6h:"):
+        user_id = data.split(":", 1)[1]
+
+        print("TEMPORARY ACCESS SELECTED: 6 HOURS -", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"✅ TEMPORARY ACCESS APPROVED\n\n"
+            f"👤 Name: {rider_name}\n"
+            f"🆔 Rider ID: {user_id}\n"
+            f"🏍️ Vehicle ID: V001\n\n"
+            f"⏱ Access Duration: 6 Hours\n"
+            f"🔓 Authorization Status: APPROVED\n\n"
+            f"Temporary access has been confirmed by the owner."
+        )
+    elif data.startswith("temp_1d:"):
+        user_id = data.split(":", 1)[1]
+
+        print("TEMPORARY ACCESS SELECTED: 1 DAY -", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"✅ TEMPORARY ACCESS APPROVED\n\n"
+            f"👤 Name: {rider_name}\n"
+            f"🆔 Rider ID: {user_id}\n"
+            f"🏍️ Vehicle ID: V001\n\n"
+            f"⏱ Access Duration: 1 Day\n"
+            f"🔓 Authorization Status: APPROVED\n\n"
+            f"Temporary access has been confirmed by the owner."
+        )
+    elif data.startswith("temp_2d:"):
+        user_id = data.split(":", 1)[1]
+
+        print("TEMPORARY ACCESS SELECTED: 2 DAYS -", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"✅ TEMPORARY ACCESS APPROVED\n\n"
+            f"👤 Name: {rider_name}\n"
+            f"🆔 Rider ID: {user_id}\n"
+            f"🏍️ Vehicle ID: V001\n\n"
+            f"⏱ Access Duration: 2 Days\n"
+            f"🔓 Authorization Status: APPROVED\n\n"
+            f"Temporary access has been confirmed by the owner."
+        )
+    elif data.startswith("cancel:"):
+        user_id = data.split(":", 1)[1]
+
+        print("OWNER CANCELLED ACCESS REQUEST:", user_id)
+
+        user = get_user(user_id)
+        rider_name = user["name"] if user else "Unknown Rider"
+
+        send_telegram_message(
+            f"↩️ ACCESS REQUEST CANCELLED\n\n"
+            f"👤 Name: {rider_name}\n"
+            f"🆔 Rider ID: {user_id}\n"
+            f"🏍️ Vehicle ID: V001\n\n"
+            f"🔒 Vehicle Status: LOCKED\n\n"
+            f"No authorization changes were made."
+        )
+    elif data.startswith("deny:"):
+        user_id = data.split(":", 1)[1]
+
+        print("OWNER SELECTED DENY:", user_id)
+
+        send_telegram_message(
+            f"⛔ ACCESS DENIED\n\n"
+            f"Rider ID: {user_id}\n"
+            f"Vehicle ID: V001\n"
+            f"Status: LOCKED\n\n"
+            f"No vehicle access has been granted."
+        )
+
+    return {"ok": True}
+    
