@@ -11,8 +11,10 @@ from database import (
     seed_users,
     get_user,
     get_vehicle_authorization,
+     get_authorized_users,
     get_learner_quota,
     grant_temporary_access,
+     grant_permanent_access,
 revoke_access
 )
 # Load environment variables from backend/.env
@@ -73,8 +75,31 @@ def test_telegram():
         if sent
         else "Telegram notification failed"
     }
-create_tables()
-seed_users()
+@app.get("/api/telegram/test")
+def test_telegram():
+    # existing code...
+    return {
+        ...
+    }
+
+
+# AUTHORIZED USERS API
+@app.get("/api/authorized-users/{vehicle_id}")
+def authorized_users(vehicle_id: str):
+    users = get_authorized_users(vehicle_id)
+
+    return {
+        "vehicle_id": vehicle_id,
+        "authorized_users": users
+    }
+
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(update: dict):
+    # existing code...
+
+ create_tables()
+ seed_users()
 
 app.add_middleware(
     CORSMiddleware,
@@ -398,6 +423,7 @@ async def telegram_webhook(update: dict):
         )
     elif data.startswith("permanent:"):
         user_id = data.split(":", 1)[1]
+        grant_permanent_access("V001", user_id)
 
         print("OWNER SELECTED PERMANENT USER:", user_id)
 
@@ -452,6 +478,8 @@ async def telegram_webhook(update: dict):
         )
     elif data.startswith("temp_1h:"):
         user_id = data.split(":", 1)[1]
+        grant_temporary_access("V001", user_id, 1)
+        
 
         print("TEMPORARY ACCESS SELECTED: 1 HOUR -", user_id)
 
@@ -469,6 +497,7 @@ async def telegram_webhook(update: dict):
         )
     elif data.startswith("temp_6h:"):
         user_id = data.split(":", 1)[1]
+        grant_temporary_access("V001", user_id, 6)
 
         print("TEMPORARY ACCESS SELECTED: 6 HOURS -", user_id)
 
@@ -486,6 +515,7 @@ async def telegram_webhook(update: dict):
         )
     elif data.startswith("temp_1d:"):
         user_id = data.split(":", 1)[1]
+        grant_temporary_access("V001", user_id, 24)
 
         print("TEMPORARY ACCESS SELECTED: 1 DAY -", user_id)
 
@@ -503,6 +533,7 @@ async def telegram_webhook(update: dict):
         )
     elif data.startswith("temp_2d:"):
         user_id = data.split(":", 1)[1]
+        grant_temporary_access("V001", user_id, 48)
 
         print("TEMPORARY ACCESS SELECTED: 2 DAYS -", user_id)
 

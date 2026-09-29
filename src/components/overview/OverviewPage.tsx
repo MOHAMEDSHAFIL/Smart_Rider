@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Play,
   Square,
@@ -52,6 +52,19 @@ export const OverviewPage: React.FC = () => {
   } = useSmartRider();
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [authorizedUsers, setAuthorizedUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/authorized-users/V001')
+      .then(response => response.json())
+      .then(data => {
+        setAuthorizedUsers(data.authorized_users || []);
+      })
+      .catch(error => {
+        console.error('Failed to load authorized users:', error);
+      });
+  }, []);
+
 
   // Remaining distance computation
   const remainingKm = Math.max(0, distanceLimitKm - distanceUsedKm);
@@ -311,6 +324,42 @@ export const OverviewPage: React.FC = () => {
 
         {/* Card F: Current Session */}
         <SessionCard />
+        {/* Card G: Authorized Users */}
+        <Panel title="Authorized Users" icon={<UserPlus className="w-4 h-4" />}>
+          <div className="space-y-3">
+            {authorizedUsers.length === 0 ? (
+              <p className="text-xs font-mono text-slate-400">
+                No authorized users found.
+              </p>
+            ) : (
+              authorizedUsers.map((user) => (
+                <div
+                  key={user.user_id}
+                  className="p-3 rounded border dark:border-slate-700 border-slate-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold dark:text-white text-slate-900">
+                        {user.name}
+                      </div>
+
+                      <div className="text-xs font-mono text-slate-400 mt-1">
+                        {user.user_id} • Licence: {user.licence_status}
+                      </div>
+                    </div>
+
+                    <Badge
+                      variant={user.authorization_type === 'OWNER' ? 'amber' : 'green'}
+                      size="sm"
+                    >
+                      {user.authorization_type}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
 
       </div>
 

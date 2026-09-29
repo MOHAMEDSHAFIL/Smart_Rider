@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from datetime import datetime, timedelta
 
 DB_NAME = "/tmp/smart_rider.db" if os.getenv("VERCEL") else "smart_rider.db"
 
@@ -44,6 +45,16 @@ def create_tables():
         PRIMARY KEY (vehicle_id, user_id)
     )
     """)
+    # Add expiry support for temporary users
+    cursor.execute("PRAGMA table_info(vehicle_users)")
+    columns = [column["name"] for column in cursor.fetchall()]
+
+    if "expires_at" not in columns:
+        cursor.execute("""
+        ALTER TABLE vehicle_users
+        ADD COLUMN expires_at TEXT
+    """)
+    
 
     # Learner quota
     cursor.execute("""
@@ -175,7 +186,27 @@ def get_vehicle_authorization(vehicle_id, user_id):
         return "NONE"
 
     return row["authorization_type"]
+def get_authorized_users(vehicle_id):
+    conn = get_connection()
+    cursor = conn.cursor()
 
+    cursor.execute("""
+        SELECT
+            users.user_id,
+            users.name,
+            users.licence_status,
+            vehicle_users.authorization_type
+        FROM vehicle_users
+        JOIN users
+            ON vehicle_users.user_id = users.user_id
+        WHERE vehicle_users.vehicle_id = ?
+    """, (vehicle_id,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+    
 
 # --------------------------------------------------
 # GET LEARNER QUOTA
@@ -205,7 +236,34 @@ def get_learner_quota(user_id):
     )
 
     return data
-def grant_temporary_access(vehicle_id, user_id):
+def grant_temporary_access(vehicle_id, user_id, duration_hours):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    expires_at = datetime.now() + timedelta(hours=duration_hours)
+
+    cursor.execute("""
+    INSERT INTO vehicle_users (
+        vehicle_id,
+        user_id,
+        authorization_type,
+        expires_at
+    )
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(vehicle_id, user_id)
+    DO UPDATE SET
+        authorization_type = excluded.authorization_type,
+        expires_at = excluded.expires_at
+    """, (
+        vehicle_id,
+        user_id,
+        "TEMPORARY",
+        expires_at.isoformat()
+    ))
+
+    conn.commit()
+    conn.close()
+def grant_permanent_access(vehicle_id, user_id):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -218,11 +276,10 @@ def grant_temporary_access(vehicle_id, user_id):
     VALUES (?, ?, ?)
     ON CONFLICT(vehicle_id, user_id)
     DO UPDATE SET authorization_type = excluded.authorization_type
-    """, (vehicle_id, user_id, "TEMPORARY"))
+    """, (vehicle_id, user_id, "PERMANENT"))
 
     conn.commit()
-    conn.close()
-
+    conn.close() 
 
 def revoke_access(vehicle_id, user_id):
     conn = get_connection()
