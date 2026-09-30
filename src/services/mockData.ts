@@ -38,7 +38,7 @@ export const MOCK_USERS: UserProfile[] = [
   },
   {
     id: "R003",
-    name: "Ravi Kumar",
+    name: "Ramm Balaji",
     riderType: "LEARNER",
     licenceStatus: "VALID",
     licenceNumber: "LL-09202600185",

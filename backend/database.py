@@ -94,7 +94,7 @@ def seed_users():
     users = [
         ("R001", "Arun", "VALID", "NORMAL", 1, 1, 0.0),
         ("R002", "Mohamed Shafil", "VALID", "LEARNER", 1, 0, 1.2),
-        ("R003", "Priya", "VALID", "NORMAL", 1, 1, 0.0),
+        ("R003", "Ramm Balaji", "VALID", "NORMAL", 1, 1, 0.0),
         ("R004", "Sam", "VALID", "NORMAL", 0, 1, 0.0)
     ]
 
@@ -138,7 +138,11 @@ def seed_users():
     )
     VALUES (?, ?, ?)
     """, learner_quotas)
-
+# Update existing R003 escort name
+    cursor.execute(
+    "UPDATE users SET name = ? WHERE user_id = ?",
+    ("Ram Balaji", "R003")
+)
     conn.commit()
     conn.close()
 

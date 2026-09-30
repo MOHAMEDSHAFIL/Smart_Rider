@@ -187,7 +187,7 @@ export const SmartRiderProvider: React.FC<{ children: ReactNode }> = ({ children
   const [riderSeatOccupied, setRiderSeatOccupied] = useState<boolean>(true);
 
   // Escort Profile & State
-  const [escort, setEscort] = useState<EscortProfile | null>(MOCK_ESCORTS[0]); // Priya Patel
+  const [escort, setEscort] = useState<EscortProfile | null>(null);
   const [escortLicenceValid, setEscortLicenceValid] = useState<boolean>(true);
   const [escortFaceVerified, setEscortFaceVerified] = useState<boolean>(false);
   const [escortEligible, setEscortEligible] = useState<boolean>(true);
